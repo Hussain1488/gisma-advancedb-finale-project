@@ -1,8 +1,9 @@
 -- Setting Database Enviernment
 
-create database checken_production;
+create database E_Commerce;
 
-use checken_production;
+use E_Commerce;
 
 set sql_safe_updates = 1;
+
 
