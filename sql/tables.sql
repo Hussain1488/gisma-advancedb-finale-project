@@ -16,34 +16,24 @@ CREATE TABLE users (
     updated_at DATETIME NOT NULL    
 );
 
--- DROP TABLE users
-
--- SELECT 
---     *
--- FROM
---     users;
-
-
 --    --> Creating order table <-- 
 CREATE TABLE orders (
     order_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT,
-    price INT NOT NULL,
-    final_price INT NOT NULL,
-	paid_amount INT NOT NULL default 0, -- checking each transaction order payment if the paid_amount is less than final price then update the paid_amount for order
-    discount TINYINT NOT NULL default 0, -- Showing error massage when it has values less then 0 or greater that 100
-    create_at DATETIME NOT NULL,
+    price DECIMAL(10, 2) CHECK (price >= 0),
+    final_price DECIMAL(10, 2) CHECK (final_price >= 0),
+	paid_amount DECIMAL(10, 2) CHECK (paid_amount >= 0),
+    created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     FOREIGN KEY (user_id)
         REFERENCES users (user_id)
 );
--- DROP TABLE orders;
 
 --    --> Creating products table <-- 
 CREATE TABLE products (
     product_id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(250) NOT NULL,
-    price INT DEFAULT 0,
+    price DECIMAL(10, 2) CHECK (price >= 0),
     discount TINYINT NOT NULL CHECK (discount >= 0 AND discount <= 100),
     status ENUM('in-stock', 'out-stock') DEFAULT 'out-stock',
     description TEXT,
@@ -52,38 +42,19 @@ CREATE TABLE products (
     created_at DATETIME
 );
 
--- DROP TABLE products 
-
-
 --    --> Creating order items table <-- 
 CREATE TABLE order_items (
     item_id INT AUTO_INCREMENT PRIMARY KEY,
     product_id INT,
     order_id INT,
     quantity INT,
-    price INT NOT NULL,
-    total_price INT NOT NULL,
+    price DECIMAL(10, 2) CHECK (price >= 0),
+    final_price DECIMAL(10, 2) CHECK (final_price >= 0),
     FOREIGN KEY (product_id)
         REFERENCES products (product_id),
     FOREIGN KEY (order_id)
         REFERENCES orders (order_id)
 );
-
-
---    --> Creating transactions table <-- 
-
-CREATE TABLE transactions (
-    trans_id INT AUTO_INCREMENT PRIMARY KEY,
-    type ENUM('income', 'expence') DEFAULT 'income',
-	order_id int,
-    amount INT NOT NULL,
-    status ENUM('pending', 'paid'),
-    description VARCHAR(256),
-    create_at DATETIME NOT NULL,
-    updated_at DATETIME NOT NULL,
-    foreign key (order_id) references orders (order_id)
-);
--- DROP TABLE transactions;
 
 --    --> Creating address table <-- 
 CREATE TABLE address (
@@ -98,13 +69,61 @@ CREATE TABLE address (
     street VARCHAR(150) NOT NULL
 );
 
+CREATE TABLE wallets(
+wallet_id INT AUTO_INCREMENT PRIMARY KEY,
+user_id INT,
+balance DECIMAL(10, 2) CHECK (balance >= 0) DEFAULT 0,
+created_at DATETIME NOT NULL,
+updated_at DATETIME NOT NULL,
+FOREIGN KEY (user_id)
+        REFERENCES users (user_id)
+);
 
--- DROP TABLE address;
--- DROP TABLE transactions;
--- DROP TABLE orders;
--- DROP TABLE employee;
--- DROP TABLE users;
+CREATE TABLE wallet_histories(
+history_id INT AUTO_INCREMENT PRIMARY KEY,
+wallet_id INT NOT NULL,
+order_id INT,
+amount DECIMAL(10,2) NOT NULL,
+status ENUM('failed', 'success'),
+type ENUM('DEPOSIT','WITHDRAW') DEFAULT('DEPOSITE'),
+created_at DATETIME NOT NULL,
+FOREIGN KEY (wallet_id)
+        REFERENCES wallets (wallet_id),
+FOREIGN KEY (order_id) REFERENCES orders (order_id)
+);
 
+--    --> Creating transactions table <-- 
+
+CREATE TABLE accounts (
+    account_id INT AUTO_INCREMENT PRIMARY KEY,
+    account_type ENUM('bank_account', 'credit_card', 'payment_gateway') DEFAULT 'bank_account' NOT NULL,
+    gateway_name VARCHAR(100),
+    balance DECIMAL(20, 2) NOT NULL,
+    description VARCHAR(256),
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL
+);
+
+CREATE TABLE transactions (
+    trans_id INT AUTO_INCREMENT PRIMARY KEY,
+	account_id INT NOT NULL,
+    amount DECIMAL(10, 2) CHECK (amount >= 0),
+    status ENUM('failed', 'success'),
+    type ENUM('DEPOSIT','WITHDRAW') DEFAULT 'DEPOSIT',
+    description VARCHAR(256),
+    created_at DATETIME NOT NULL,
+    FOREIGN KEY (account_id) REFERENCES accounts(account_id)
+);
+
+DROP TABLE address;
+DROP TABLE transactions;
+DROP TABLE wallet_histories;
+DROP TABLE wallets;
+DROP TABLE order_items;
+DROP TABLE orders;
+DROP TABLE products;
+DROP TABLE accounts;
+DROP TABLE users;
 
 
 
