@@ -33,6 +33,7 @@ begin
     SET NEW.created_at = now(),
     NEW.updated_at = now(),
     NEW.price = 0,
+    NEW.status = 'PENDING',
     NEW.final_price = 0,
     NEW.paid_amount =0;
 end $$

@@ -8,8 +8,6 @@ const reviews = 'reviews';
 const cart = 'cart';
 const wishlist = 'wishlist';
 
-const product_table = 'products';
-const user_table = 'users';
 
 
 // The current database to use.
@@ -25,7 +23,7 @@ db.createCollection(userActivitycollection, {
         user_id: { bsonType: 'int' },
         logs: {
           bsonType: 'array',
-          logs: {
+          items: {
             bsonType: "object",
             required: ['date', 'activity'],
             properties: {
@@ -34,7 +32,7 @@ db.createCollection(userActivitycollection, {
             }
           }
         }
-      },
+      }
     }
   }
 });
@@ -44,16 +42,15 @@ db.createCollection(reviews, {
   validator: {
     $jsonSchema: {
       bsonType: "object",
-      required: ["product_id", "review"],
+      required: ["product_id", "reviews"],
       properties: {
         product_id: { bsonType: "int" },
         reviews: {
           bsonType: "array",
           items: {
             bsonType: "object",
-            required: ['id', 'user_id', 'message'],
+            required: ['user_id', 'message'],
             properties: {
-              id: { bsonType: 'objectId' },
               user_id: { bsonType: 'int' },
               message: { bsonType: 'string' }
             }
@@ -97,16 +94,18 @@ db.createCollection(wishlist, {
       bsonType: "object",
       required: ["user_id", "items"],
       properties: {
-        user_id: { bsonType: 'int' },
+        user_id: { bsonType: "int" },
         items: {
           bsonType: "array",
           items: {
             bsonType: "object",
             required: ["product_id", "added_at"],
-            product_id: { bsonType: 'int' },
-            added_at: { bsonType: "date" }
+            properties: {
+              product_id: { bsonType: "int" },
+              added_at: { bsonType: "date" }
+            }
           }
-        },
+        }
       }
     }
   }
@@ -114,7 +113,7 @@ db.createCollection(wishlist, {
 
 // Difinitioin of collections indexes:
 
-db.userActivitycollection.createIndex({ user_id: 1 });
+db.user_activity.createIndex({ user_id: 1 });
 
 db.reviews.createIndex({ product_id: 1, "items.user_id": 1 });
 
@@ -123,7 +122,3 @@ db.cart.createIndex({ user_id: 1 });
 db.wishlist.createIndex({ user_id: 1 });
 
 
-// Creating sql tables, sample for testing
-
-db.createCollection(user_table);
-db.createCollection(product_table)

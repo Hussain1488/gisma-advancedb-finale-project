@@ -5,6 +5,9 @@
 
 
 -- proedure and transaction for adding product(item) to order
+
+CALL AddProductToOrder(2,1,1);
+
 DELIMITER $$
 
 CREATE PROCEDURE AddProductToOrder(
@@ -66,7 +69,7 @@ END$$
 
 DELIMITER ;
 
-call PayOrder(1, 1, 100);
+call PayOrder(2, 1, 70);
 
 -- procedure and transaction for order payment
 DELIMITER $$
@@ -80,17 +83,29 @@ BEGIN
     DECLARE v_total_price DECIMAL(10, 2);
     DECLARE v_paid_amount DECIMAL(10, 2);
     DECLARE v_wallet_balance DECIMAL(10, 2);
+    DECLARE v_order_status ENUM('PENDING','PAID');
+    DECLARE v_order_user_id INT;
+    DECLARE v_wallet_user_id INT;
+    
 
     -- Start the transaction
     START TRANSACTION;
 
     -- Get the total price and paid amount of the order
-    SELECT price, paid_amount INTO v_total_price, v_paid_amount
+    SELECT final_price, paid_amount INTO v_total_price, v_paid_amount
     FROM orders
     WHERE order_id = p_order_id
-    FOR UPDATE; -- Lock the row to prevent concurrent updates
+    FOR UPDATE;
 
-    -- Check if the payment amount is valid
+	SELECT user_id INTO v_order_user_id FROM orders WHERE order_id = p_order_id;
+    SELECT user_id INTO v_wallet_user_id FROM wallets WHERE wallet_id = p_wallet_id;
+
+    IF v_order_user_id != v_wallet_user_id THEN
+		 
+			SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Selected wallet and selected order have different owners';
+	END IF;
+    
     IF p_payment_amount <= 0 THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Invalid payment amount: Amount must be greater than 0';
@@ -101,7 +116,9 @@ BEGIN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Payment exceeds the total price of the order';
     END IF;
+    
 
+    
     -- Get the wallet balance
     SELECT balance INTO v_wallet_balance
     FROM wallets
@@ -115,9 +132,12 @@ BEGIN
     END IF;
 
     -- Update the paid amount in the orders table
-    UPDATE orders
+    UPDATE orders o
     SET paid_amount = paid_amount + p_payment_amount,
-        updated_at = NOW()
+        status = CASE 
+                WHEN (paid_amount + p_payment_amount) >= o.final_price THEN 'PAID' 
+                ELSE 'PENDING' 
+             END
     WHERE order_id = p_order_id;
 
     -- Create a wallet history entry for the payment
@@ -133,7 +153,7 @@ END$$
 
 DELIMITER ;
 
-call IncreaseWalletBalance(1, 150, 1, 'it is just for testing the code');
+call IncreaseWalletBalance(1, 150, 3, 'it is just for testing the code');
 
 -- procedure and transaction for increasing the wallet balance
 DELIMITER $$
@@ -147,6 +167,7 @@ CREATE PROCEDURE IncreaseWalletBalance(
 BEGIN
     DECLARE v_wallet_balance DECIMAL(10, 2);
     DECLARE v_account_balance DECIMAL(20, 2);
+    DECLARE u_user_id INT;
 
     -- Start the transaction
     START TRANSACTION;
@@ -175,14 +196,16 @@ BEGIN
     SET balance = balance + p_amount,
         updated_at = NOW()
     WHERE wallet_id = p_wallet_id;
+    
+    SELECT user_id INTO u_user_id FROM wallets WHERE wallet_id = p_wallet_id;
 
     -- Create a wallet history entry
     INSERT INTO wallet_histories (wallet_id, amount, type, created_at)
     VALUES (p_wallet_id, p_amount, 'DEPOSIT', NOW());
 
     -- Create a transaction entry
-    INSERT INTO transactions (account_id, amount, status, type, description, created_at)
-    VALUES (p_account_id, p_amount, 'success', 'WITHDRAW', p_description, NOW());
+    INSERT INTO transactions (account_id, user_id, amount, status, type, description, created_at)
+    VALUES (p_account_id, u_user_id, p_amount, 'success', 'WITHDRAW', p_description, NOW());
 
     -- Deduct the amount from the account balance
     UPDATE accounts
@@ -211,6 +234,8 @@ CREATE PROCEDURE UpdateWalletBalance(IN u_wallet_id INT, IN new_amount DECIMAL(1
 BEGIN 
 DECLARE old_balance DECIMAL(10, 2);
 
+	START TRANSACTION;
+    
 	IF new_amount <= 0 THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Invalid amount: Amount must be greater than 0';
@@ -235,7 +260,99 @@ DECLARE old_balance DECIMAL(10, 2);
 			WHERE wallet_id = u_wallet_id;
 		END IF;
 	END IF;
+    COMMIT;
 END $$
 DELIMITER ;
+
+
+DELIMITER $$
+
+CREATE PROCEDURE OrderStatusChange(
+    IN v_order_id INT, 
+    IN v_status ENUM('CANCELED','DELIVERED')  -- Fixed typo: CANCELED
+)
+BEGIN 
+    DECLARE trans_message VARCHAR(250);
+    DECLARE order_status ENUM('PENDING','PAID','CANCELED','DELIVERED');
+    DECLARE u_wallet_id INT;
+    DECLARE v_paid_amount DECIMAL(10,2);
+    DECLARE v_user_id INT;
+    DECLARE v_bank_account_id INT;
+    DECLARE p_wallet_id INT;
+
+    START TRANSACTION;
+    
+
+    SELECT status, paid_amount, user_id INTO order_status, v_paid_amount, v_user_id
+    FROM orders 
+    WHERE order_id = v_order_id
+    FOR UPDATE;
+    
+    IF order_status IS NULL THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Order not found';
+    END IF;
+    
+    IF v_status = order_status THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Order status already set to this status';
+    END IF;
+    
+    IF order_status = 'DELIVERED' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Delivered orders cannot be modified';
+    END IF;
+    
+    IF v_status = 'DELIVERED' AND order_status != 'PAID' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Order must be paid before delivery';
+    END IF;
+    
+    SELECT wallet_id INTO u_wallet_id FROM wallets WHERE user_id = v_user_id;
+    SELECT account_id INTO v_bank_account_id 
+    FROM accounts 
+    WHERE account_type = 'bank_account' AND user_id = v_user_id;  -- Added user filter
+    
+    IF v_status = 'CANCELED' THEN
+        SET trans_message = CONCAT('Refund for order cancellation #', v_order_id);
+        
+        IF v_paid_amount IS NULL OR v_user_id IS NULL OR v_bank_account_id IS NULL THEN
+            SIGNAL SQLSTATE '45000' 
+            SET MESSAGE_TEXT = 'Missing required data for cancellation';
+        END IF;
+        
+        IF v_paid_amount > 0 THEN
+            INSERT INTO wallet_histories (wallet_id, amount, type)
+            VALUES (u_wallet_id, v_paid_amount, 'DEPOSIT');
+            
+            INSERT INTO transactions(account_id, user_id, amount, status, type, description) 
+            VALUES (
+                v_bank_account_id,
+                v_user_id,
+                v_paid_amount,
+                'success',
+                'REFUND',
+                trans_message
+                );
+            
+            call UpdateWalletBalance(1, v_paid_amount, 'DEPOSIT');
+            
+        END IF;
+    END IF;
+    
+    -- Update order status
+    UPDATE orders 
+    SET status = v_status,
+        updated_at = NOW()
+    WHERE order_id = v_order_id;
+    
+    COMMIT;
+END$$
+
+DELIMITER ;
+    
+    
+    
+    
 
 

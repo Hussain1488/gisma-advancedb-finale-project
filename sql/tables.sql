@@ -10,7 +10,7 @@ CREATE TABLE users (
     last_name VARCHAR(70) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    phone_number VARCHAR(20) DEFAULT NULL,
+    phone_number VARCHAR(20) DEFAULT NULL UNIQUE,
     role ENUM('user', 'admin') DEFAULT 'user',
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL    
@@ -23,11 +23,14 @@ CREATE TABLE orders (
     price DECIMAL(10, 2) CHECK (price >= 0),
     final_price DECIMAL(10, 2) CHECK (final_price >= 0),
 	paid_amount DECIMAL(10, 2) CHECK (paid_amount >= 0),
+    status ENUM('PENDING','PAID','CANCELED','DELIVERED'),
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     FOREIGN KEY (user_id)
         REFERENCES users (user_id)
 );
+
+CREATE INDEX ind_orders_status ON orders(status);
 
 --    --> Creating products table <-- 
 CREATE TABLE products (
@@ -41,6 +44,8 @@ CREATE TABLE products (
     updated_at DATETIME,
     created_at DATETIME
 );
+
+CREATE INDEX ind_products_title ON products(title);
 
 --    --> Creating order items table <-- 
 CREATE TABLE order_items (
@@ -107,12 +112,15 @@ CREATE TABLE accounts (
 CREATE TABLE transactions (
     trans_id INT AUTO_INCREMENT PRIMARY KEY,
 	account_id INT NOT NULL,
+    user_id INT,
     amount DECIMAL(10, 2) CHECK (amount >= 0),
     status ENUM('failed', 'success'),
     type ENUM('DEPOSIT','WITHDRAW') DEFAULT 'DEPOSIT',
     description VARCHAR(256),
     created_at DATETIME NOT NULL,
-    FOREIGN KEY (account_id) REFERENCES accounts(account_id)
+    FOREIGN KEY (account_id) REFERENCES accounts(account_id),
+    FOREIGN KEY (user_id)
+        REFERENCES users (user_id)
 );
 
 DROP TABLE address;
