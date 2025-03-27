@@ -3,6 +3,7 @@
 // Use Ctrl+Space inside a snippet or a string literal to trigger completions.
 
 const database = 'my_app';
+
 const userActivitycollection = 'user_activity';
 const reviews = 'reviews';
 const cart = 'cart';
@@ -88,7 +89,7 @@ db.createCollection(cart, {
 });
 
 // Difining the reqiered format for user wish list collection.
-db.createCollection(wishlist, {
+db.createCollection('wishlist', {
   validator: {
     $jsonSchema: {
       bsonType: "object",
@@ -119,6 +120,6 @@ db.reviews.createIndex({ product_id: 1, "items.user_id": 1 });
 
 db.cart.createIndex({ user_id: 1 });
 
-db.wishlist.createIndex({ user_id: 1 });
+db.wishlist.createIndex({ user_id: 1, 'items.product_id' :1 });
 
 

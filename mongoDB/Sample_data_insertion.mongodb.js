@@ -36,36 +36,36 @@ db.products.insertMany(products);
 // Inserting data into reviews collection
 db.reviews.insertMany([
   {
-    product_id: 101, // Laptop
+    product_id: 101,
     reviews: [
       {
-        user_id: 1, // Alice
+        user_id: 1,
         message: "The laptop is fast and reliable!"
       },
       {
-        user_id: 2, // Bob
+        user_id: 2,
         message: "Great performance, but a bit pricey."
       }
     ]
   },
   {
-    product_id: 102, // Smartphone
+    product_id: 102,
     reviews: [
       {
-        user_id: 3, // Charlie
+        user_id: 3,
         message: "Amazing camera quality!"
       },
       {
-        user_id: 4, // David
+        user_id: 4,
         message: "Battery life could be better."
       }
     ]
   },
   {
-    product_id: 103, // Headphones
+    product_id: 103,
     reviews: [
       {
-        user_id: 5, // Eve
+        user_id: 5,
         message: "Very comfortable and great sound quality."
       }
     ]
@@ -75,35 +75,35 @@ db.reviews.insertMany([
 // Inserting data into cart collection
 db.cart.insertMany([
   {
-    user_id: 1, // Alice
+    user_id: 1,
     items: [
       {
-        product_id: 101, // Laptop
+        product_id: 101,
         quantity: 1,
         created_at: new Date()
       },
       {
-        product_id: 103, // Headphones
+        product_id: 103,
         quantity: 2,
         created_at: new Date()
       }
     ]
   },
   {
-    user_id: 2, // Bob
+    user_id: 2,
     items: [
       {
-        product_id: 102, // Smartphone
+        product_id: 102,
         quantity: 1,
         created_at: new Date()
       }
     ]
   },
   {
-    user_id: 3, // Charlie
+    user_id: 3,
     items: [
       {
-        product_id: 104, // Book
+        product_id: 104,
         quantity: 3,
         created_at: new Date()
       }
@@ -114,7 +114,7 @@ db.cart.insertMany([
 // Inserting data into user_activity collection
 db.user_activity.insertMany([
   {
-    user_id: 1, // Alice
+    user_id: 1,
     logs: [
       {
         date: new Date(),
@@ -127,7 +127,7 @@ db.user_activity.insertMany([
     ]
   },
   {
-    user_id: 2, // Bob
+    user_id: 2,
     logs: [
       {
         date: new Date(),
@@ -140,7 +140,7 @@ db.user_activity.insertMany([
     ]
   },
   {
-    user_id: 3, // Charlie
+    user_id: 3,
     logs: [
       {
         date: new Date(),
@@ -153,32 +153,32 @@ db.user_activity.insertMany([
 // Inserting data into wishlist collection
 db.wishlist.insertMany([
   {
-    user_id: 1, // Alice
+    user_id: 1,
     items: [
       {
-        product_id: 102, // Smartphone
+        product_id: 102,
         added_at: new Date()
       },
       {
-        product_id: 105, // Backpack
+        product_id: 105,
         added_at: new Date()
       }
     ]
   },
   {
-    user_id: 2, // Bob
+    user_id: 2,
     items: [
       {
-        product_id: 101, // Laptop
+        product_id: 101,
         added_at: new Date()
       }
     ]
   },
   {
-    user_id: 3, // Charlie
+    user_id: 3,
     items: [
       {
-        product_id: 103, // Headphones
+        product_id: 103,
         added_at: new Date()
       }
     ]

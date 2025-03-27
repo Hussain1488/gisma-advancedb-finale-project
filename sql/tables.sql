@@ -101,7 +101,8 @@ FOREIGN KEY (order_id) REFERENCES orders (order_id)
 
 CREATE TABLE accounts (
     account_id INT AUTO_INCREMENT PRIMARY KEY,
-    account_type ENUM('bank_account', 'credit_card', 'payment_gateway') DEFAULT 'bank_account' NOT NULL,
+    account_type ENUM('bank_account', 'credit_card', 'payment_gateway')
+		DEFAULT 'bank_account' NOT NULL,
     gateway_name VARCHAR(100),
     balance DECIMAL(20, 2) NOT NULL,
     description VARCHAR(256),
@@ -115,7 +116,7 @@ CREATE TABLE transactions (
     user_id INT,
     amount DECIMAL(10, 2) CHECK (amount >= 0),
     status ENUM('failed', 'success'),
-    type ENUM('DEPOSIT','WITHDRAW') DEFAULT 'DEPOSIT',
+    type ENUM('DEPOSIT','WITHDRAW', 'REFUND') DEFAULT 'DEPOSIT',
     description VARCHAR(256),
     created_at DATETIME NOT NULL,
     FOREIGN KEY (account_id) REFERENCES accounts(account_id),
